@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Petty Cash Manager</title>
 <meta name="description" content="Offline-first petty cash management — ledger, reconciliation, and Excel import/export, all stored locally on your device." />
-<meta name="theme-color" content="#4f46e5" />
+<meta name="theme-color" content="#1a73e8" />
 <link rel="manifest" href="./manifest.json" />
 <link rel="icon" href="./icons/icon-192.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="./icons/icon-192.svg" />
@@ -34,6 +34,17 @@
   @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   #toast-host { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); z-index: 60; width: max-content; max-width: 92vw; }
   @media (min-width: 768px) { #toast-host { bottom: 24px; left: auto; right: 24px; transform: none; } }
+
+  /* Accent theme — overwritten at runtime by applyAccentColor() in app.js.
+     Default: Google Blue. */
+  :root {
+    --accent-50: #e8f0fe;
+    --accent-300: #8ab4f8;
+    --accent-400: #669df6;
+    --accent-600: #1a73e8;
+    --accent-700: #1967d2;
+    --accent-soft-dark: rgba(66,133,244,0.12);
+  }
 </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900">

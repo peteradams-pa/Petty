@@ -1,6 +1,6 @@
 // sw.js — Offline-first caching for the Petty Cash PWA.
 // Bump CACHE_VERSION whenever app files change so clients pick up the update.
-const CACHE_VERSION = 'petty-cash-v1.0.1';
+const CACHE_VERSION = 'petty-cash-v1.1.0';
 const CACHE_NAME = `petty-cash-cache-${CACHE_VERSION}`;
 
 const APP_SHELL = [
