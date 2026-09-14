@@ -24,11 +24,37 @@ const state = {
 const app = document.getElementById('app');
 const toastHost = document.getElementById('toast-host');
 
+// ---------------- Accent color themes ----------------
+const ACCENT_THEMES = {
+  'google-blue': { label: 'Google Blue', swatch: '#1a73e8', 50: '#e8f0fe', 300: '#8ab4f8', 400: '#669df6', 600: '#1a73e8', 700: '#1967d2', soft: 'rgba(66,133,244,0.12)' },
+  'indigo': { label: 'Indigo', swatch: '#4f46e5', 50: '#eef2ff', 300: '#a5b4fc', 400: '#818cf8', 600: '#4f46e5', 700: '#4338ca', soft: 'rgba(99,102,241,0.12)' },
+  'emerald': { label: 'Emerald', swatch: '#059669', 50: '#ecfdf5', 300: '#6ee7b7', 400: '#34d399', 600: '#059669', 700: '#047857', soft: 'rgba(16,185,129,0.12)' },
+  'amber': { label: 'Amber', swatch: '#d97706', 50: '#fffbeb', 300: '#fcd34d', 400: '#fbbf24', 600: '#d97706', 700: '#b45309', soft: 'rgba(245,158,11,0.14)' },
+  'rose': { label: 'Rose', swatch: '#e11d48', 50: '#fff1f2', 300: '#fda4af', 400: '#fb7185', 600: '#e11d48', 700: '#be123c', soft: 'rgba(244,63,94,0.12)' },
+  'violet': { label: 'Violet', swatch: '#7c3aed', 50: '#f5f3ff', 300: '#c4b5fd', 400: '#a78bfa', 600: '#7c3aed', 700: '#6d28d9', soft: 'rgba(139,92,246,0.12)' },
+  'teal': { label: 'Teal', swatch: '#0d9488', 50: '#f0fdfa', 300: '#5eead4', 400: '#2dd4bf', 600: '#0d9488', 700: '#0f766e', soft: 'rgba(20,184,166,0.12)' },
+  'slate': { label: 'Slate', swatch: '#334155', 50: '#f8fafc', 300: '#94a3b8', 400: '#64748b', 600: '#334155', 700: '#1e293b', soft: 'rgba(71,85,105,0.14)' }
+};
+
+function applyAccentColor(themeId) {
+  const theme = ACCENT_THEMES[themeId] || ACCENT_THEMES['google-blue'];
+  const root = document.documentElement.style;
+  root.setProperty('--accent-50', theme[50]);
+  root.setProperty('--accent-300', theme[300]);
+  root.setProperty('--accent-400', theme[400]);
+  root.setProperty('--accent-600', theme[600]);
+  root.setProperty('--accent-700', theme[700]);
+  root.setProperty('--accent-soft-dark', theme.soft);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme[600]);
+}
+
 // ---------------- Boot ----------------
 async function boot() {
   await initDefaultSettings();
   state.settings = await getSettings();
   applyDarkMode(state.settings.darkMode);
+  applyAccentColor(state.settings.accentColor);
   state.transactions = await getAllTransactions();
 
   if (state.settings.pinLock) {
@@ -47,13 +73,13 @@ function renderLockScreen() {
   app.innerHTML = `
     <div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 px-4">
       <div class="w-full max-w-sm bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 text-center">
-        <div class="w-14 h-14 mx-auto rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl mb-4">🔒</div>
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-[var(--accent-600)] flex items-center justify-center text-white text-2xl mb-4">🔒</div>
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-1">Locked</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Enter your PIN to open the ledger.</p>
         <input id="pin-input" type="password" inputmode="numeric" maxlength="8"
           class="w-full text-center text-2xl tracking-[0.5em] rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white py-3 mb-4" placeholder="••••" />
         <p id="pin-error" class="text-sm text-red-500 h-5 mb-2"></p>
-        <button id="pin-submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-3 font-medium transition">Unlock</button>
+        <button id="pin-submit" class="w-full bg-[var(--accent-600)] hover:bg-[var(--accent-700)] text-white rounded-2xl py-3 font-medium transition">Unlock</button>
       </div>
     </div>`;
   const input = document.getElementById('pin-input');
@@ -87,14 +113,14 @@ function renderShell() {
       <!-- Desktop sidebar -->
       <aside class="hidden md:flex md:flex-col w-64 shrink-0 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 p-5">
         <div class="flex items-center gap-3 mb-8 px-1">
-          <div class="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold">₵</div>
+          <div class="w-10 h-10 rounded-2xl bg-[var(--accent-600)] flex items-center justify-center text-white font-bold">₵</div>
           <div>
             <div class="font-semibold text-slate-800 dark:text-slate-100 leading-tight" id="org-name-label">${escapeHtml(state.settings.orgName)}</div>
             <div class="text-xs text-slate-400">Petty Cash Manager</div>
           </div>
         </div>
         <nav class="flex-1 space-y-1" id="sidebar-nav"></nav>
-        <button id="dark-toggle-desktop" class="mt-4 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-300 hover:text-indigo-600 rounded-xl px-3 py-2 transition">
+        <button id="dark-toggle-desktop" class="mt-4 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-300 hover:text-[var(--accent-600)] rounded-xl px-3 py-2 transition">
           <span id="dark-toggle-icon">${state.settings.darkMode ? '☀️' : '🌙'}</span> Toggle theme
         </button>
       </aside>
@@ -104,7 +130,7 @@ function renderShell() {
         <header class="sticky top-0 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur border-b border-slate-200 dark:border-slate-700 px-4 md:px-8 py-3 flex items-center justify-between">
           <h1 id="view-title" class="text-lg font-semibold text-slate-800 dark:text-slate-100">Dashboard</h1>
           <div class="flex items-center gap-2">
-            <span id="float-pill" class="hidden sm:inline-flex items-center text-xs font-medium px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"></span>
+            <span id="float-pill" class="hidden sm:inline-flex items-center text-xs font-medium px-3 py-1.5 rounded-full bg-[var(--accent-50)] dark:bg-[var(--accent-soft-dark)] text-[var(--accent-700)] dark:text-[var(--accent-300)]"></span>
             <button id="dark-toggle-mobile" class="md:hidden w-9 h-9 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-300">🌙</button>
           </div>
         </header>
@@ -117,7 +143,7 @@ function renderShell() {
 
       <!-- FAB -->
       <button id="fab-add" title="New transaction (N)"
-        class="fixed z-40 bottom-20 md:bottom-8 right-5 md:right-8 w-14 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 shadow-lg text-white text-2xl flex items-center justify-center transition transform hover:scale-105">+</button>
+        class="fixed z-40 bottom-20 md:bottom-8 right-5 md:right-8 w-14 h-14 rounded-2xl bg-[var(--accent-600)] hover:bg-[var(--accent-700)] shadow-lg text-white text-2xl flex items-center justify-center transition transform hover:scale-105">+</button>
     </div>
     <div id="modal-root"></div>
   `;
@@ -138,8 +164,8 @@ function renderNav(containerId, isSidebar) {
       ? 'w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition'
       : 'flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-[11px] font-medium transition'}
       ${state.currentView === item.id
-        ? 'bg-indigo-600 text-white'
-        : 'text-slate-500 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-slate-700'}">
+        ? 'bg-[var(--accent-600)] text-white'
+        : 'text-slate-500 dark:text-slate-300 hover:bg-[var(--accent-50)] dark:hover:bg-slate-700'}">
       <span class="${isSidebar ? 'text-base' : 'text-lg'}">${item.icon}</span>
       <span>${item.label}</span>
     </button>
@@ -155,7 +181,7 @@ async function updateFloatPill() {
   if (!pill) return;
   const low = balances.total < state.settings.floatMinThreshold;
   pill.textContent = `Float: ${state.settings.currency} ${balances.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}${low ? ' ⚠ Low' : ''}`;
-  pill.className = `hidden sm:inline-flex items-center text-xs font-medium px-3 py-1.5 rounded-full ${low ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300' : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'}`;
+  pill.className = `hidden sm:inline-flex items-center text-xs font-medium px-3 py-1.5 rounded-full ${low ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300' : 'bg-[var(--accent-50)] dark:bg-[var(--accent-soft-dark)] text-[var(--accent-700)] dark:text-[var(--accent-300)]'}`;
 }
 
 // ---------------- Router ----------------
@@ -336,8 +362,8 @@ function applyLedgerFilters() {
       <td class="px-4 py-3 text-right font-medium ${t.type === 'Inflow' ? 'text-emerald-600' : 'text-slate-700 dark:text-slate-200'}">${t.type === 'Inflow' ? '+' : '-'}${fmt(t.amount)}</td>
       <td class="px-4 py-3">${statusBadge(t.status)}</td>
       <td class="px-4 py-3 text-right whitespace-nowrap">
-        <button data-action="print" data-id="${t.id}" class="text-slate-400 hover:text-indigo-600 px-1" title="Print voucher">🖨️</button>
-        <button data-action="edit" data-id="${t.id}" class="text-slate-400 hover:text-indigo-600 px-1" title="Edit">✏️</button>
+        <button data-action="print" data-id="${t.id}" class="text-slate-400 hover:text-[var(--accent-600)] px-1" title="Print voucher">🖨️</button>
+        <button data-action="edit" data-id="${t.id}" class="text-slate-400 hover:text-[var(--accent-600)] px-1" title="Edit">✏️</button>
         <button data-action="delete" data-id="${t.id}" class="text-slate-400 hover:text-red-600 px-1" title="Delete">🗑️</button>
       </td>
     </tr>
@@ -460,7 +486,7 @@ async function openTransactionModal(existing = null) {
           <p id="tx-alert" class="text-sm text-amber-600 dark:text-amber-400"></p>
           <div class="flex gap-3 pt-2 pb-2">
             <button type="button" id="modal-cancel" class="flex-1 rounded-2xl border border-slate-200 dark:border-slate-700 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300">Cancel</button>
-            <button type="submit" class="flex-1 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 text-sm font-medium">${existing ? 'Save Changes' : 'Log Transaction'}</button>
+            <button type="submit" class="flex-1 rounded-2xl bg-[var(--accent-600)] hover:bg-[var(--accent-700)] text-white py-2.5 text-sm font-medium">${existing ? 'Save Changes' : 'Log Transaction'}</button>
           </div>
         </form>
       </div>
@@ -589,7 +615,7 @@ async function renderReconcile(container) {
           <div class="flex justify-between"><span class="text-slate-500">Mobile Money / M-Pesa</span><span class="font-semibold">${fmt(balances.mobileMoney)}</span></div>
           <div class="flex justify-between"><span class="text-slate-500">Bank Transfer</span><span class="font-semibold">${fmt(balances.bank)}</span></div>
           <div class="border-t border-slate-100 dark:border-slate-700 pt-3 flex justify-between text-base">
-            <span class="font-medium text-slate-700 dark:text-slate-200">Total Float</span><span class="font-bold text-indigo-600">${fmt(balances.total)}</span>
+            <span class="font-medium text-slate-700 dark:text-slate-200">Total Float</span><span class="font-bold text-[var(--accent-600)]">${fmt(balances.total)}</span>
           </div>
         </div>
       </div>
@@ -611,7 +637,7 @@ async function renderReconcile(container) {
           <span class="text-slate-500">Variance vs. System Cash</span>
           <span id="counted-variance" class="font-semibold">—</span>
         </div>
-        <button id="save-count" class="mt-4 w-full rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 text-sm font-medium">Save Reconciliation</button>
+        <button id="save-count" class="mt-4 w-full rounded-2xl bg-[var(--accent-600)] hover:bg-[var(--accent-700)] text-white py-2.5 text-sm font-medium">Save Reconciliation</button>
         ${latest ? `<p class="text-xs text-slate-400 mt-2">Last saved: ${new Date(latest.date).toLocaleString()} · variance ${fmt(latest.variance)}</p>` : ''}
       </div>
     </div>
@@ -619,7 +645,7 @@ async function renderReconcile(container) {
     <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300">Custody Handover Log</h3>
-        <button id="new-handover" class="text-xs bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 rounded-full px-3 py-1.5 font-medium">+ Record Handover</button>
+        <button id="new-handover" class="text-xs bg-[var(--accent-50)] dark:bg-[var(--accent-soft-dark)] text-[var(--accent-600)] dark:text-[var(--accent-300)] rounded-full px-3 py-1.5 font-medium">+ Record Handover</button>
       </div>
       <div class="space-y-2 text-sm" id="custody-list">
         ${custody.map(c => `
@@ -678,7 +704,7 @@ function openHandoverModal() {
             <input name="notes" class="mt-1 w-full rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-3 py-2" /></label>
           <div class="flex gap-3 pt-2">
             <button type="button" id="modal-cancel" class="flex-1 rounded-2xl border border-slate-200 dark:border-slate-700 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300">Cancel</button>
-            <button type="submit" class="flex-1 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 text-sm font-medium">Record</button>
+            <button type="submit" class="flex-1 rounded-2xl bg-[var(--accent-600)] hover:bg-[var(--accent-700)] text-white py-2.5 text-sm font-medium">Record</button>
           </div>
         </form>
       </div>
@@ -725,7 +751,7 @@ function renderReports(container) {
               <option value="">Any payment method</option>
               ${['Physical Cash', 'Mobile Money / M-Pesa', 'Bank Transfer'].map(v => `<option>${v}</option>`).join('')}
             </select>
-            <button id="export-filtered" class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white py-2 text-xs font-medium">Export Filtered Set</button>
+            <button id="export-filtered" class="w-full rounded-xl bg-[var(--accent-600)] hover:bg-[var(--accent-700)] text-white py-2 text-xs font-medium">Export Filtered Set</button>
           </div>
           <button id="export-backup" class="w-full text-left rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/40">
             🗄️ Full database backup (.json)
@@ -735,7 +761,7 @@ function renderReports(container) {
 
       <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
         <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-4">Import</h3>
-        <label class="block rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 px-4 py-6 text-center text-sm text-slate-500 cursor-pointer hover:border-indigo-400">
+        <label class="block rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 px-4 py-6 text-center text-sm text-slate-500 cursor-pointer hover:border-[var(--accent-400)]">
           <input type="file" id="import-file" accept=".xlsx,.xls,.csv" class="hidden" />
           📄 Click to choose an Excel or CSV file to import
         </label>
@@ -743,7 +769,7 @@ function renderReports(container) {
 
         <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700">
           <p class="text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Restore Full Backup</p>
-          <label class="block rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 px-4 py-4 text-center text-sm text-slate-500 cursor-pointer hover:border-indigo-400">
+          <label class="block rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 px-4 py-4 text-center text-sm text-slate-500 cursor-pointer hover:border-[var(--accent-400)]">
             <input type="file" id="restore-file" accept=".json" class="hidden" />
             🗄️ Click to choose a .json backup to restore
           </label>
@@ -830,7 +856,7 @@ function renderImportMapping(parsed) {
             <select data-field="${f.key}" class="mapping-select mt-0.5 w-full rounded-lg border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-2 py-1.5">${options}</select>
           </label>`).join('')}
       </div>
-      <button id="run-import" class="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white py-2 text-sm font-medium">Import Transactions</button>
+      <button id="run-import" class="w-full rounded-xl bg-[var(--accent-600)] hover:bg-[var(--accent-700)] text-white py-2 text-sm font-medium">Import Transactions</button>
       <div id="import-report" class="text-xs mt-3 text-slate-500"></div>
     </div>
   `;
@@ -873,8 +899,29 @@ function renderSettings(container) {
           <input id="s-custodianName" value="${escapeHtml(s.custodianName)}" class="mt-1 w-full rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-3 py-2" /></label>
         <label class="text-sm block"><span class="text-slate-500">Currency Code</span>
           <input id="s-currency" value="${escapeHtml(s.currency)}" class="mt-1 w-full rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-3 py-2" /></label>
-        <label class="flex items-center justify-between text-sm"><span class="text-slate-500">Dark Mode</span>
-          <input type="checkbox" id="s-darkMode" ${s.darkMode ? 'checked' : ''} class="w-5 h-5 accent-indigo-600" /></label>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 space-y-4">
+        <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300">Appearance</h3>
+        <div>
+          <span class="text-sm text-slate-500 block mb-2">Theme</span>
+          <div class="flex gap-2" id="theme-mode-toggle">
+            <button type="button" data-mode="light" class="theme-mode-btn flex-1 rounded-2xl py-2.5 text-sm font-medium border transition">☀️ Light</button>
+            <button type="button" data-mode="dark" class="theme-mode-btn flex-1 rounded-2xl py-2.5 text-sm font-medium border transition">🌙 Dark</button>
+          </div>
+        </div>
+        <div>
+          <span class="text-sm text-slate-500 block mb-2">Accent Color</span>
+          <div class="flex flex-wrap gap-3" id="accent-swatch-row">
+            ${Object.entries(ACCENT_THEMES).map(([id, t]) => `
+              <button type="button" data-accent="${id}" title="${t.label}"
+                class="accent-swatch w-9 h-9 rounded-full border-2 transition ${s.accentColor === id ? 'border-slate-800 dark:border-white scale-110' : 'border-transparent'}"
+                style="background:${t.swatch}"></button>
+            `).join('')}
+          </div>
+        </div>
+        <input type="hidden" id="s-darkMode" value="${s.darkMode ? '1' : '0'}" />
+        <input type="hidden" id="s-accentColor" value="${escapeHtml(s.accentColor)}" />
       </div>
 
       <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 space-y-4">
@@ -901,7 +948,7 @@ function renderSettings(container) {
         <label class="text-sm block"><span class="text-slate-500">App PIN Lock (leave blank to disable)</span>
           <input id="s-pinLock" type="password" maxlength="8" placeholder="e.g. 4821" value="${escapeHtml(s.pinLock || '')}" class="mt-1 w-full rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-3 py-2" /></label>
         <label class="flex items-center justify-between text-sm"><span class="text-slate-500">Encrypt receipt images at rest (AES-GCM, key derived from PIN)</span>
-          <input type="checkbox" id="s-encryption" ${s.encryptionEnabled ? 'checked' : ''} class="w-5 h-5 accent-indigo-600" /></label>
+          <input type="checkbox" id="s-encryption" ${s.encryptionEnabled ? 'checked' : ''} class="w-5 h-5 accent-[var(--accent-600)]" /></label>
         <p class="text-xs text-slate-400">A PIN is required to enable encryption. Losing the PIN means stored receipt images cannot be recovered.</p>
       </div>
 
@@ -915,15 +962,49 @@ function renderSettings(container) {
               <button class="cat-remove text-slate-400 hover:text-red-600" data-idx="${i}">🗑️</button>
             </div>`).join('')}
         </div>
-        <button id="cat-add" class="text-xs text-indigo-600 font-medium mt-2">+ Add category</button>
+        <button id="cat-add" class="text-xs text-[var(--accent-600)] font-medium mt-2">+ Add category</button>
       </div>
     </div>
 
     <div class="mt-4 flex justify-end">
-      <button id="save-settings" class="rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 text-sm font-medium">Save Settings</button>
+      <button id="save-settings" class="rounded-2xl bg-[var(--accent-600)] hover:bg-[var(--accent-700)] text-white px-6 py-2.5 text-sm font-medium">Save Settings</button>
     </div>
     <p class="text-xs text-slate-400 mt-4">Petty Cash PWA · Offline-first · All data stays on this device.</p>
   `;
+
+  // Appearance: theme mode toggle + accent color swatches (live preview)
+  function highlightModeButtons(mode) {
+    container.querySelectorAll('.theme-mode-btn').forEach(btn => {
+      const active = btn.dataset.mode === mode;
+      btn.className = `theme-mode-btn flex-1 rounded-2xl py-2.5 text-sm font-medium border transition ${
+        active
+          ? 'bg-[var(--accent-600)] border-[var(--accent-600)] text-white'
+          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+      }`;
+    });
+  }
+  highlightModeButtons(s.darkMode ? 'dark' : 'light');
+  container.querySelectorAll('.theme-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      document.getElementById('s-darkMode').value = mode === 'dark' ? '1' : '0';
+      applyDarkMode(mode === 'dark');
+      highlightModeButtons(mode);
+    });
+  });
+
+  container.querySelectorAll('.accent-swatch').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('s-accentColor').value = btn.dataset.accent;
+      applyAccentColor(btn.dataset.accent);
+      container.querySelectorAll('.accent-swatch').forEach(b => {
+        b.classList.remove('border-slate-800', 'dark:border-white', 'scale-110');
+        b.classList.add('border-transparent');
+      });
+      btn.classList.remove('border-transparent');
+      btn.classList.add('border-slate-800', 'dark:border-white', 'scale-110');
+    });
+  });
 
   document.getElementById('cat-add').addEventListener('click', () => {
     s.categories.push({ name: 'New Category', subcategories: [] });
@@ -956,7 +1037,8 @@ function renderSettings(container) {
       orgName: document.getElementById('s-orgName').value,
       custodianName: document.getElementById('s-custodianName').value,
       currency: document.getElementById('s-currency').value || 'KES',
-      darkMode: document.getElementById('s-darkMode').checked,
+      darkMode: document.getElementById('s-darkMode').value === '1',
+      accentColor: document.getElementById('s-accentColor').value,
       floatMinThreshold: parseFloat(document.getElementById('s-floatMin').value) || 0,
       spendCapAmount: parseFloat(document.getElementById('s-spendCap').value) || 0,
       spendCapMode: document.getElementById('s-spendCapMode').value,
@@ -972,6 +1054,7 @@ function renderSettings(container) {
     }
     state.settings = await getSettings();
     applyDarkMode(state.settings.darkMode);
+    applyAccentColor(state.settings.accentColor);
     if (pin) await deriveKeyFromPin(pin);
     showToast('Settings saved.');
     renderShell();
@@ -1005,7 +1088,7 @@ async function toggleDarkMode() {
 
 function showToast(message, isError = false) {
   const toast = document.createElement('div');
-  toast.className = `mb-2 px-4 py-3 rounded-2xl shadow-lg text-sm text-white ${isError ? 'bg-red-500' : 'bg-slate-800 dark:bg-indigo-600'} animate-[fadein_0.2s_ease-out]`;
+  toast.className = `mb-2 px-4 py-3 rounded-2xl shadow-lg text-sm text-white ${isError ? 'bg-red-500' : 'bg-slate-800 dark:bg-[var(--accent-600)]'} animate-[fadein_0.2s_ease-out]`;
   toast.textContent = message;
   toastHost.appendChild(toast);
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3200);
@@ -1047,7 +1130,7 @@ function registerServiceWorker() {
 
 function showUpdateToast(reg) {
   const toast = document.createElement('div');
-  toast.className = 'mb-2 px-4 py-3 rounded-2xl shadow-lg text-sm bg-indigo-600 text-white flex items-center gap-3';
+  toast.className = 'mb-2 px-4 py-3 rounded-2xl shadow-lg text-sm bg-[var(--accent-600)] text-white flex items-center gap-3';
   toast.innerHTML = `<span>A new version is available.</span><button id="reload-app" class="underline font-medium">Reload</button>`;
   toastHost.appendChild(toast);
   toast.querySelector('#reload-app').addEventListener('click', () => {

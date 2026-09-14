@@ -4,7 +4,19 @@ let categoryChart = null;
 let velocityChart = null;
 let channelChart = null;
 
-const PALETTE = ['#4f46e5', '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#312e81', '#8b5cf6', '#f59e0b'];
+function accentColor() {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--accent-600').trim();
+  return v || '#4f46e5';
+}
+function categoryPalette() {
+  return [accentColor(), '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#312e81', '#8b5cf6', '#f59e0b'];
+}
+function hexToRgba(hex, alpha) {
+  const clean = hex.replace('#', '');
+  const bigint = parseInt(clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean, 16);
+  const r = (bigint >> 16) & 255, g = (bigint >> 8) & 255, b = bigint & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 function isDark() {
   return document.documentElement.classList.contains('dark');
@@ -38,7 +50,7 @@ export function renderCategoryBreakdown(canvasId, transactions) {
     type: 'doughnut',
     data: {
       labels,
-      datasets: [{ data: values, backgroundColor: PALETTE, borderWidth: 2, borderColor: isDark() ? '#1e293b' : '#ffffff' }]
+      datasets: [{ data: values, backgroundColor: categoryPalette(), borderWidth: 2, borderColor: isDark() ? '#1e293b' : '#ffffff' }]
     },
     options: {
       responsive: true,
@@ -77,8 +89,8 @@ export function renderDailyVelocity(canvasId, transactions) {
       datasets: [{
         label: 'Daily Spend',
         data: values,
-        borderColor: '#4f46e5',
-        backgroundColor: 'rgba(79,70,229,0.15)',
+        borderColor: accentColor(),
+        backgroundColor: hexToRgba(accentColor(), 0.15),
         fill: true,
         tension: 0.3,
         pointRadius: 2
@@ -110,7 +122,7 @@ export function renderPaymentChannelDistribution(canvasId, transactions) {
     type: 'bar',
     data: {
       labels: Object.keys(byMethod),
-      datasets: [{ data: Object.values(byMethod), backgroundColor: ['#4f46e5', '#22c55e', '#f59e0b'], borderRadius: 8 }]
+      datasets: [{ data: Object.values(byMethod), backgroundColor: [accentColor(), '#22c55e', '#f59e0b'], borderRadius: 8 }]
     },
     options: {
       responsive: true,

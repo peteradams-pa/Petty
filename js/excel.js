@@ -14,6 +14,11 @@ const COLUMN_LABELS = {
   status: 'Status', approvedBy: 'Approved By', handledBy: 'Handled By'
 };
 
+function getAccentHexForExcel() {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--accent-600').trim() || '#1a73e8';
+  return v.replace('#', '').toUpperCase();
+}
+
 /**
  * Export an array of transactions to a styled .xlsx workbook with
  * auto-filter, frozen header, and a totals row.
@@ -54,7 +59,7 @@ export function exportTransactionsToExcel(transactions, filenamePrefix = 'petty-
     if (ws[cellRef]) {
       ws[cellRef].s = {
         font: { bold: true, color: { rgb: 'FFFFFF' } },
-        fill: { fgColor: { rgb: '4F46E5' } }
+        fill: { fgColor: { rgb: getAccentHexForExcel() } }
       };
     }
   }
@@ -177,19 +182,20 @@ export async function importMappedTransactions(rows, mapping, settings) {
  */
 export function printVoucher(tx, settings) {
   const win = window.open('', '_blank', 'width=800,height=900');
+  const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent-600') || '#1a73e8').trim() || '#1a73e8';
   const amountFmt = Number(tx.amount).toLocaleString(undefined, { minimumFractionDigits: 2 });
   const feesFmt = Number(tx.fees || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
   win.document.write(`
     <!DOCTYPE html><html><head><title>Voucher ${tx.voucherId}</title>
     <style>
       body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1e293b; }
-      .voucher { max-width: 640px; margin: 0 auto; border: 2px solid #4f46e5; border-radius: 16px; padding: 32px; }
-      h1 { color: #4f46e5; font-size: 20px; margin: 0 0 4px; }
+      .voucher { max-width: 640px; margin: 0 auto; border: 2px solid ${accent}; border-radius: 16px; padding: 32px; }
+      h1 { color: ${accent}; font-size: 20px; margin: 0 0 4px; }
       .sub { color: #64748b; font-size: 13px; margin-bottom: 24px; }
       table { width: 100%; border-collapse: collapse; }
       td { padding: 8px 4px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
       td.label { color: #64748b; width: 40%; }
-      .amount { font-size: 24px; font-weight: bold; color: #4f46e5; margin-top: 20px; }
+      .amount { font-size: 24px; font-weight: bold; color: ${accent}; margin-top: 20px; }
       .sign { display: flex; justify-content: space-between; margin-top: 60px; }
       .sign div { border-top: 1px solid #94a3b8; width: 40%; text-align: center; padding-top: 6px; font-size: 12px; color: #64748b; }
       @media print { body { padding: 0; } }

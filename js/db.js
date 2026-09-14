@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS = {
   frequencyWindowMinutes: 60,
   frequencyThresholdCount: 3,
   darkMode: false,
+  accentColor: 'google-blue',
   pinLock: '',
   encryptionEnabled: false,
   categories: [
