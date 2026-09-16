@@ -5,7 +5,7 @@ import {
   addTransaction, updateTransaction, deleteTransaction, getAllTransactions,
   computeBalances, addCustodyLogEntry, getCustodyLog, saveDenominationCount,
   getLatestDenominationCount, exportFullBackup, restoreFullBackup, voucherIdExists,
-  findRecentPayeePayouts, logAudit
+  findRecentPayeePayouts, logAudit, repairMissingDates
 } from './db.js';
 import { exportTransactionsToExcel, exportFilteredTransactions, parseWorkbookFile, importMappedTransactions, printVoucher } from './excel.js';
 import { renderCategoryBreakdown, renderDailyVelocity, renderPaymentChannelDistribution, destroyAllCharts } from './charts.js';
@@ -52,6 +52,7 @@ function applyAccentColor(themeId) {
 // ---------------- Boot ----------------
 async function boot() {
   await initDefaultSettings();
+  const repaired = await repairMissingDates();
   state.settings = await getSettings();
   applyDarkMode(state.settings.darkMode);
   applyAccentColor(state.settings.accentColor);
@@ -62,6 +63,9 @@ async function boot() {
   } else {
     renderShell();
     navigate('dashboard');
+  }
+  if (repaired > 0) {
+    setTimeout(() => showToast(`Recovered ${repaired} transaction${repaired > 1 ? 's' : ''} that were missing from the Ledger.`), 600);
   }
 
   registerServiceWorker();
@@ -412,6 +416,10 @@ async function openTransactionModal(existing = null) {
           <button id="modal-close" class="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
         </div>
         <form id="tx-form" class="px-6 py-4 space-y-4">
+          <label class="text-sm block">
+            <span class="text-slate-500 dark:text-slate-400">Date &amp; Time</span>
+            <input required type="datetime-local" name="date" value="${toLocalDatetimeInputValue(existing?.date)}" class="mt-1 w-full rounded-2xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-3 py-2" />
+          </label>
           <div class="grid grid-cols-2 gap-3">
             <label class="text-sm">
               <span class="text-slate-500 dark:text-slate-400">Type</span>
@@ -541,6 +549,10 @@ async function openTransactionModal(existing = null) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const payload = Object.fromEntries(fd.entries());
+    // The datetime-local input gives "YYYY-MM-DDTHH:mm" in local time with
+    // no timezone; JS Date parses that as local time, so this round-trips
+    // correctly into a real ISO timestamp for storage/sorting.
+    payload.date = new Date(payload.date).toISOString();
     payload.amount = parseFloat(payload.amount) || 0;
     payload.fees = parseFloat(payload.fees) || 0;
     payload.receiptImage = (state.settings.encryptionEnabled && hasCryptoKey() && receiptDataUrl)
@@ -954,15 +966,18 @@ function renderSettings(container) {
 
       <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 space-y-2">
         <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2">Categories & GL Codes</h3>
-        <div id="category-list" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+        <div id="category-list" class="space-y-3 max-h-80 overflow-y-auto pr-1">
           ${s.categories.map((c, i) => `
-            <div class="flex items-center gap-2 text-sm">
-              <input class="cat-name flex-1 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-2 py-1.5" data-idx="${i}" value="${escapeHtml(c.name)}" />
-              <input class="cat-gl w-24 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-2 py-1.5" data-idx="${i}" placeholder="GL code" value="${escapeHtml(s.glAccountMap[c.name] || '')}" />
-              <button class="cat-remove text-slate-400 hover:text-red-600" data-idx="${i}">🗑️</button>
-            </div>`).join('')}
+            <div class="rounded-2xl border border-slate-100 dark:border-slate-700 p-3 space-y-2">
+              <div class="flex items-center gap-2 text-sm">
+                <input class="cat-name flex-1 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-2 py-1.5" data-idx="${i}" placeholder="Category name" value="${escapeHtml(c.name)}" />
+                <input class="cat-gl w-24 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-2 py-1.5" data-idx="${i}" placeholder="GL code" value="${escapeHtml(s.glAccountMap[c.name] || '')}" />
+                <button type="button" class="cat-remove text-slate-400 hover:text-red-600 px-1" data-idx="${i}" title="Remove category">🗑️</button>
+              </div>
+              <input class="cat-subs w-full rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white px-2 py-1.5 text-xs" data-idx="${i}" placeholder="Subcategories, comma separated" value="${escapeHtml((c.subcategories || []).join(', '))}" />
+            </div>`).join('') || emptyState('No categories yet — add one below.')}
         </div>
-        <button id="cat-add" class="text-xs text-[var(--accent-600)] font-medium mt-2">+ Add category</button>
+        <button type="button" id="cat-add" class="text-xs text-[var(--accent-600)] font-medium mt-2">+ Add category</button>
       </div>
     </div>
 
@@ -1007,7 +1022,9 @@ function renderSettings(container) {
   });
 
   document.getElementById('cat-add').addEventListener('click', () => {
-    s.categories.push({ name: 'New Category', subcategories: [] });
+    let n = s.categories.length + 1;
+    while (s.categories.some(c => c.name === `New Category ${n}`)) n++;
+    s.categories.push({ name: `New Category ${n}`, subcategories: [] });
     renderSettings(container);
   });
   container.querySelectorAll('.cat-remove').forEach(btn => btn.addEventListener('click', () => {
@@ -1020,8 +1037,9 @@ function renderSettings(container) {
     const glMap = {};
     container.querySelectorAll('.cat-name').forEach((inp, i) => {
       const name = inp.value.trim() || `Category ${i + 1}`;
-      const existingCat = s.categories[Number(inp.dataset.idx)];
-      newCategories.push({ name, subcategories: existingCat?.subcategories || [] });
+      const subsInput = container.querySelector(`.cat-subs[data-idx="${inp.dataset.idx}"]`);
+      const subcategories = (subsInput?.value || '').split(',').map(x => x.trim()).filter(Boolean);
+      newCategories.push({ name, subcategories });
       const glInput = container.querySelector(`.cat-gl[data-idx="${inp.dataset.idx}"]`);
       glMap[name] = glInput?.value || '';
     });
@@ -1066,6 +1084,13 @@ function renderSettings(container) {
 function fmt(n) {
   const val = Number(n) || 0;
   return `${state.settings.currency} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+// Converts an ISO timestamp (or nothing, for "now") into the local
+// "YYYY-MM-DDTHH:mm" string a <input type="datetime-local"> expects.
+function toLocalDatetimeInputValue(isoString) {
+  const d = isoString ? new Date(isoString) : new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));

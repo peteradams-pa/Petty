@@ -85,8 +85,15 @@ export async function generateVoucherId(type) {
     .where('voucherId')
     .startsWith(prefix)
     .toArray();
-  const nextSeq = monthTx.length + 1;
-  return `${prefix}${String(nextSeq).padStart(4, '0')}`;
+  // Use the highest existing sequence number + 1, not the row count — counting
+  // rows breaks (produces a duplicate voucher ID) as soon as any transaction
+  // in the month has been deleted.
+  let maxSeq = 0;
+  for (const t of monthTx) {
+    const seq = parseInt(String(t.voucherId).slice(prefix.length), 10);
+    if (!isNaN(seq) && seq > maxSeq) maxSeq = seq;
+  }
+  return `${prefix}${String(maxSeq + 1).padStart(4, '0')}`;
 }
 
 // ---------- Transactions ----------
@@ -123,7 +130,10 @@ export async function computeBalances() {
   const txs = await db.transactions.toArray();
   let cash = 0, mobileMoney = 0, bank = 0;
   for (const t of txs) {
-    if (t.status === 'Overdue IOU' && t.type !== 'Advance IOU') continue;
+    // Every logged transaction represents cash that has actually moved —
+    // status only tracks documentation follow-up (receipt pending, IOU
+    // overdue) and must never exclude a transaction from the float total,
+    // or the reconciliation balance silently drifts from reality.
     const signedAmount = t.type === 'Inflow' ? (t.amount - (t.fees || 0)) : -(t.amount + (t.fees || 0));
     if (t.paymentMethod === 'Physical Cash') cash += signedAmount;
     else if (t.paymentMethod === 'Mobile Money / M-Pesa') mobileMoney += signedAmount;
@@ -185,6 +195,24 @@ export async function restoreFullBackup(payload) {
     if (payload.denominationCounts) await db.denominationCounts.bulkAdd(payload.denominationCounts);
   });
   await logAudit('database', 'restore', { source: 'backup-file' });
+}
+
+// ---------- Data repair ----------
+// Backfills the `date` field on any transaction that's missing it. This
+// matters because Dexie's indexes silently exclude a record from
+// orderBy('date') queries when the indexed field is undefined — so any
+// transaction saved before the transaction form had a Date field (an
+// earlier bug) is otherwise invisible in the Ledger and Dashboard forever,
+// even though it's still sitting in the database and counted in balances.
+export async function repairMissingDates() {
+  const all = await db.transactions.toArray();
+  const broken = all.filter(t => !t.date);
+  if (broken.length === 0) return 0;
+  await db.transactions.bulkPut(
+    broken.map(t => ({ ...t, date: t.createdAt || new Date().toISOString() }))
+  );
+  await logAudit('database', 'repair-missing-dates', { count: broken.length });
+  return broken.length;
 }
 
 // ---------- Duplicate / frequency checks ----------
