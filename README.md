@@ -71,6 +71,48 @@ petty-cash-pwa/
   (desktop) / bottom nav (mobile), FAB for instant transaction entry, dark
   mode, toast notifications.
 
+## Bug Fixes (this update)
+
+A functional audit found and fixed the following issues:
+
+1. **Ledger not syncing with new entries (critical).** The transaction form
+   never had a Date & Time field, so every new transaction was saved with
+   `date: undefined`. Dexie's IndexedDB indexes silently exclude a record
+   from `orderBy('date')` queries when the indexed field is undefined —
+   so new transactions were being written to the database correctly but
+   never appeared in the Ledger, the Dashboard's recent list, or any
+   date-range filtered export. Fixed by adding a required Date & Time field
+   to the transaction form (defaulting to "now").
+   **Data recovery**: a one-time repair now runs automatically on startup
+   that finds any transaction already stuck in this state and backfills its
+   date from its original `createdAt` timestamp, so previously "lost"
+   entries reappear. You'll see a toast the first time this runs if it
+   found anything to fix.
+2. **Category editor was incomplete.** There was no way to add or edit a
+   category's subcategories at all — only the top-level name and GL code
+   were editable. Added a "Subcategories, comma separated" field to each
+   category row in Settings, and gave newly added categories unique default
+   names to avoid accidental collisions.
+3. **Voucher ID collisions after deleting a transaction.** IDs were
+   generated from the count of transactions in the month, so deleting a
+   transaction and then adding a new one could reissue an ID that still
+   existed. Fixed to generate IDs from the highest existing sequence number
+   in the month instead of the row count.
+4. **Reconciliation balance could silently drop a transaction.** Balance
+   calculations skipped any transaction whose status was set to
+   "Overdue IOU" unless its type was also "Advance IOU" — but the Status
+   field allows "Overdue IOU" on any transaction type. That combination
+   made the transaction vanish from the float total entirely (neither
+   added nor subtracted), silently corrupting reconciliation. Status now
+   only affects documentation follow-up, never whether a transaction counts
+   toward the balance.
+5. **Offline caching missed the CDN libraries.** The service worker only
+   cached responses with `status === 200`, but cross-origin `<script src>`
+   requests (Tailwind, Dexie, SheetJS, Chart.js) come back as "opaque"
+   responses that always report `status: 0`. They were never actually being
+   cached, so a fully offline load could fail to render. Fixed to also
+   cache opaque responses.
+
 ## Autonomously Added Features
 
 The brief granted explicit engineering autonomy to add anything that would

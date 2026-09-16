@@ -1,6 +1,6 @@
 // sw.js — Offline-first caching for the Petty Cash PWA.
 // Bump CACHE_VERSION whenever app files change so clients pick up the update.
-const CACHE_VERSION = 'petty-cash-v1.1.0';
+const CACHE_VERSION = 'petty-cash-v1.2.0';
 const CACHE_NAME = `petty-cash-cache-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -46,7 +46,11 @@ self.addEventListener('fetch', (event) => {
     caches.match(request).then((cached) => {
       const networkFetch = fetch(request)
         .then((response) => {
-          if (response && response.status === 200) {
+          // Same-origin responses report a real status; cross-origin CDN
+          // script/style requests (Tailwind, Dexie, SheetJS, Chart.js) come
+          // back as "opaque" responses with status 0 — cache those too, or
+          // the app never actually works offline despite appearing to.
+          if (response && (response.status === 200 || response.type === 'opaque')) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
           }
